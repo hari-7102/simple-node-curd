@@ -1,18 +1,26 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const app = express();
+const cors = require('cors');
 
 //router
 const ProductRoutes = require('./routes/productRoutes');
 const userRoutes = require("./routes/userRoutes");
 
 const User = require("./models/userModels");
-const {  generateAccessToken,  generateRefreshToken  } = require('./authUtlis.js/authUtlis');
+const {  generateAccessToken,  generateRefreshToken ,refreshAccessToken } = require('./authUtlis.js/authUtlis');
 const authMiddleware = require('./authenicateMiddleware/authMiddleware');
 
 //middleware
 app.use(express.json());
+app.use(cors()); 
 
+
+
+app.use(cors({
+  origin: "http://localhost:5173", // your React frontend
+  credentials: true                // allow cookies
+}));
 
 //router
 app.use('/api/products' , authMiddleware ,ProductRoutes);
@@ -20,21 +28,72 @@ app.use("/api/users",authMiddleware ,  userRoutes);
 
 
 app.post("/login", async (req, res) => {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email, password });
-    // console.log("userinformation", user);
-    if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-    }
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email, password });
+        console.log("userinformation", user);
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
 
-    res.json({ accessToken , refreshToken });
+        res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,     // ❌ true breaks cookies on localhost (only use true with HTTPS)
+        sameSite: "None",  // ✅ required for cross-origin cookies
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
 
-});                           
+        return res.json({
+            accessToken,
+            refreshToken,
+            userId : user._id, 
+            email : user.email
+        });
+
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Internal server error" }); 
+}});                           
 
 
+app.post("/logout", async (req, res) => {
+  const rt = req.cookies?.refreshToken; // ✅ use same name as set in login
+
+  if (rt) {
+    await User.updateOne(
+      { "refreshTokens.token": rt },
+      { $pull: { refreshTokens: { token: rt } } }
+    );
+  }
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: false,     // must match login
+    sameSite: "None",  // must match login
+  });
+
+  res.json({ ok: true });
+});
+
+
+
+
+app.post("/refresh_token" , async (req, res) => {
+  const token = req.cookies?.rt;
+    console.log("refreshtoken", token);
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, refreshAccessToken, (err, user) => {
+    if (err) return res.sendStatus(403);
+
+    const newAccessToken = generateAccessToken(user);
+    res.json({ accessToken: newAccessToken });
+
+  });
+});
 
 
 
