@@ -2,10 +2,15 @@ const express = require('express');
 const mongoose = require('mongoose');
 const app = express();
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+
+
 
 //router
 const ProductRoutes = require('./routes/productRoutes');
 const userRoutes = require("./routes/userRoutes");
+
 
 const User = require("./models/userModels");
 const {  generateAccessToken,  generateRefreshToken ,refreshAccessToken } = require('./authUtlis.js/authUtlis');
@@ -13,8 +18,6 @@ const authMiddleware = require('./authenicateMiddleware/authMiddleware');
 
 //middleware
 app.use(express.json());
-app.use(cors()); 
-
 
 
 app.use(cors({
@@ -22,9 +25,15 @@ app.use(cors({
   credentials: true                // allow cookies
 }));
 
+app.use(cookieParser());
+
+
+
 //router
 app.use('/api/products' , authMiddleware ,ProductRoutes);
 app.use("/api/users",authMiddleware ,  userRoutes);
+
+
 
 
 app.post("/login", async (req, res) => {
@@ -36,19 +45,32 @@ app.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
+        console.log("generting ")
+
+
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 
-        res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: false,     // ❌ true breaks cookies on localhost (only use true with HTTPS)
-        sameSite: "None",  // ✅ required for cross-origin cookies
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+        console.log("accesstoken ", accessToken)
+        console.log("refreshtoken ", refreshToken)
+
+          res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: false,      // ✅ allow on localhost without HTTPS
+            sameSite: "Lax",    // ✅ safe default for same-site login
+            maxAge: 7 * 24 * 60 * 60 * 1000
+          });
+
+        console.log("Response" ,{
+            accessToken,
+            refreshToken,
+            userId : user._id, 
+            email : user.email
+        } )
 
         return res.json({
             accessToken,
-            refreshToken,
+            // refreshToken,
             userId : user._id, 
             email : user.email
         });
@@ -61,7 +83,6 @@ app.post("/login", async (req, res) => {
 
 app.post("/logout", async (req, res) => {
   const rt = req.cookies?.refreshToken; // ✅ use same name as set in login
-
   if (rt) {
     await User.updateOne(
       { "refreshTokens.token": rt },
@@ -81,8 +102,8 @@ app.post("/logout", async (req, res) => {
 
 
 
-app.post("/refresh_token" , async (req, res) => {
-  const token = req.cookies?.rt;
+app.post("/refresh" , async (req, res) => {
+  const token = req.cookies?.refreshToken;
     console.log("refreshtoken", token);
   if (!token) return res.sendStatus(401);
 
@@ -91,12 +112,10 @@ app.post("/refresh_token" , async (req, res) => {
 
     const newAccessToken = generateAccessToken(user);
     res.json({ accessToken: newAccessToken });
+    console.log("newaccessToken" ,newAccessToken )
 
   });
 });
-
-
-
 
 
 

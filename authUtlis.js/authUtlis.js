@@ -7,7 +7,7 @@ const refreshAccessToken = process.env.REFRESH_TOKEN_SECRET || 'refreshKey-simpl
 
 
 const generateAccessToken = (user) => {
-    return jwt.sign({ id: user._id, email: user.email }, accessTokenSecret, { expiresIn: '5min' });
+    return jwt.sign({ id: user._id, email: user.email }, accessTokenSecret, { expiresIn: '1min' });
 }
 
 const generateRefreshToken = (user) => {
