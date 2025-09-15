@@ -4,17 +4,16 @@ const app = express();
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
-
-
+const bcrypt = require('bcrypt');
 
 //router
 const ProductRoutes = require('./routes/productRoutes');
 const userRoutes = require("./routes/userRoutes");
 
-
 const User = require("./models/userModels");
 const {  generateAccessToken,  generateRefreshToken ,refreshAccessToken } = require('./authUtlis.js/authUtlis');
 const authMiddleware = require('./authenicateMiddleware/authMiddleware');
+
 
 //middleware
 app.use(express.json());
@@ -34,20 +33,20 @@ app.use('/api/products' , authMiddleware ,ProductRoutes);
 app.use("/api/users",authMiddleware ,  userRoutes);
 
 
-
-
 app.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email, password });
+        const user = await User.findOne({ email });
         console.log("userinformation", user);
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        console.log("generting ")
-
-
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        if (!isPasswordMatch) {
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+      
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 
@@ -61,12 +60,12 @@ app.post("/login", async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
           });
 
-        console.log("Response" ,{
-            accessToken,
-            refreshToken,
-            userId : user._id, 
-            email : user.email
-        } )
+        // console.log("Response" ,{
+        //     accessToken,
+        //     refreshToken,
+        //     userId : user._id, 
+        //     email : user.email
+        // } )
 
         return res.json({
             accessToken,
@@ -79,7 +78,6 @@ app.post("/login", async (req, res) => {
         console.error("Login error:", error);
         res.status(500).json({ message: "Internal server error" }); 
 }});                           
-
 
 app.post("/logout", async (req, res) => {
   const rt = req.cookies?.refreshToken; // ✅ use same name as set in login
@@ -99,8 +97,26 @@ app.post("/logout", async (req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/forgotpass" , async (req, res) => {
+  try{
+      const { email , confirmPassword} = req.body
+      const user = await User.findOne({email})
+      if (!user) {
+          return res.status(400).json({ message: "user is not available" });
+      }
 
+      const hashedPassword = await bcrypt.hash(confirmPassword, 10);
 
+      user.password = hashedPassword;
+
+      await user.save();
+      res.status(200).json({ message: "Password changed successfully" })
+
+  } catch (error) {
+
+      res.status(500).json({ message: err.message });
+  }
+})
 
 app.post("/refresh" , async (req, res) => {
   const token = req.cookies?.refreshToken;

@@ -1,5 +1,5 @@
 const User = require("../models/userModels");
-
+const bcrypt = require('bcrypt');
 // ✅ Create User (POST)
 const createUser = async (req, res) => {
   try {
@@ -15,7 +15,9 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: "Email is already registered" });
     }
 
-    const newUser = new User({ username, email, password });
+    const hashpassword = await bcrypt.hash(password,10)
+
+    const newUser = new User({ username, email, password:hashpassword });
     await newUser.save();
 
     res.status(201).json({ message: "User created successfully", user: newUser });
@@ -76,10 +78,29 @@ const deleteUser = async (req, res) => {
   }
 };
 
+
+
+
+const resetpassword = async (req, res) => {
+  try{
+      const { email , confirmPassword} = req.body
+      const user = await User.findOne({email})
+      if (user) {
+          return res.status(400).json({ message: "user is not available" });
+      }
+      user.password = confirmPassword
+      user.save()
+      res.status(200).json({ message: "Password changed successfully" })
+  } catch (error) {
+      res.status(500).json({ message: err.message });
+  }
+}
+
 module.exports = {
   createUser,
   getUsers,
   getUserById,
   updateUser,
   deleteUser,
+  
 };
