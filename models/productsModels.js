@@ -20,13 +20,16 @@ const productSchema = new mongoose.Schema(
             type : Number,
             required: true,
             default: 0
-        }
-    },
-    { 
-        timestamps: true 
-    }
+        },
+    
+        user : { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
-);
+    },
+        {timestamps: true }
+    
+    );
+
+
 
 
 const Product = mongoose.model('Product', productSchema);

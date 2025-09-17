@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken');
 const { accessTokenSecret } = require('../authUtlis.js/authUtlis');
+const User = require("../models/userModels");
 
 
-const authMiddleware = (req, res, next) => {        
+const authMiddleware = async(req, res, next) => {        
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
 
@@ -10,14 +11,16 @@ const authMiddleware = (req, res, next) => {
         return res.status(401).json({ message: 'Access token is missing' });
     }   
 
-    jwt.verify(token, accessTokenSecret, (err, user) => {
-        if (err) {
-            return res.status(403).json({ message: 'Invalid or expired token' });
-        }   
-        req.user = user; // Attach user info to request
-        next();
-    });
+    const decoded = jwt.verify(token, accessTokenSecret);
 
-}
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) return res.status(401).json({ message: "Invalid token" });
+
+    req.user = user; // ✅ attach userAttach user info to request
+        next();
+
+};
+
+
 
 module.exports = authMiddleware;
