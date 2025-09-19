@@ -37,7 +37,7 @@ app.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
-        console.log("userinformation", user);
+        // console.log("userinformation", user);
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
@@ -53,12 +53,13 @@ app.post("/login", async (req, res) => {
         console.log("accesstoken ", accessToken)
         console.log("refreshtoken ", refreshToken)
 
-          res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: false,      // ✅ allow on localhost without HTTPS
-            sameSite: "Lax",    // ✅ safe default for same-site login
-            maxAge: 7 * 24 * 60 * 60 * 1000
-          });
+        res.clearCookie("refreshToken");   // ✅ clear old one first
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: false,   // true in production
+          sameSite: "strict"
+        });
+
 
         // console.log("Response" ,{
         //     accessToken,
@@ -79,23 +80,22 @@ app.post("/login", async (req, res) => {
         res.status(500).json({ message: "Internal server error" }); 
 }});                           
 
-app.post("/logout", async (req, res) => {
-  const rt = req.cookies?.refreshToken; // ✅ use same name as set in login
-  if (rt) {
-    await User.updateOne(
-      { "refreshTokens.token": rt },
-      { $pull: { refreshTokens: { token: rt } } }
-    );
-  }
 
+
+
+app.post("/logout", (req, res) => {
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: false,     // must match login
-    sameSite: "None",  // must match login
+    secure: false,   // must match login cookie
+    sameSite: "strict",
+    path: "/",       // must match login cookie
   });
-
-  res.json({ ok: true });
+  return res.json({ message: "Logged out successfully" });
 });
+
+
+
+
 
 app.post("/forgotpass" , async (req, res) => {
   try{
@@ -120,7 +120,7 @@ app.post("/forgotpass" , async (req, res) => {
 
 app.post("/refresh" , async (req, res) => {
   const token = req.cookies?.refreshToken;
-    console.log("refreshtoken", token);
+    // console.log("refreshtoken", token);
   if (!token) return res.sendStatus(401);
 
   jwt.verify(token, refreshAccessToken, (err, user) => {
@@ -128,7 +128,7 @@ app.post("/refresh" , async (req, res) => {
 
     const newAccessToken = generateAccessToken(user);
     res.json({ accessToken: newAccessToken });
-    console.log("newaccessToken" ,newAccessToken )
+    // console.log("newaccessToken" ,newAccessToken )
 
   });
 });
@@ -149,4 +149,5 @@ mongoose.connect("mongodb+srv://hariharanbvn28:DevilkingMongodb007@cluster0.tscf
 .catch(() => {
     console.log("Error connecting to MongoDB")
 });
-
+           
+                 

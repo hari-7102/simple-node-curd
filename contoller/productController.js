@@ -16,6 +16,8 @@ const createProducts = async(req, res) => {
 
 const getAllProducts = async (req, res) => {
     try {
+        
+        console.log("Current logged in user:", req.user._id); // 🔍 Debug
         const ProductData = await Product.find({ user: req.user._id });
         res.status(200).json(ProductData);
     }catch (error) {
