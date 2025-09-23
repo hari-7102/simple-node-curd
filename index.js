@@ -57,7 +57,7 @@ app.post("/login", async (req, res) => {
         res.cookie("refreshToken", refreshToken, {
           httpOnly: true,
           secure: false,   // true in production
-          sameSite: "strict"
+          
         });
 
 
@@ -118,9 +118,13 @@ app.post("/forgotpass" , async (req, res) => {
   }
 })
 
+
+
+
+
 app.post("/refresh" , async (req, res) => {
   const token = req.cookies?.refreshToken;
-    // console.log("refreshtoken", token);
+    console.log("refreshtoken", token);
   if (!token) return res.sendStatus(401);
 
   jwt.verify(token, refreshAccessToken, (err, user) => {
@@ -128,7 +132,7 @@ app.post("/refresh" , async (req, res) => {
 
     const newAccessToken = generateAccessToken(user);
     res.json({ accessToken: newAccessToken });
-    // console.log("newaccessToken" ,newAccessToken )
+    console.log("newaccessToken" ,newAccessToken )
 
   });
 });
