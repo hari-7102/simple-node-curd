@@ -5,19 +5,19 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-
+require("dotenv").config();
 //router
 const ProductRoutes = require('./routes/productRoutes');
 const userRoutes = require("./routes/userRoutes");
+const paymentRoutes = require("./routes/PaymentRoutes");
 
 const User = require("./models/userModels");
 const {  generateAccessToken,  generateRefreshToken ,refreshAccessToken } = require('./authUtlis.js/authUtlis');
-const authMiddleware = require('./authenicateMiddleware/authMiddleware');
+const {authMiddleware} = require('./authenicateMiddleware/authMiddleware');
 
 
 //middleware
 app.use(express.json());
-
 
 app.use(cors({
   origin: "http://localhost:5173", // your React frontend
@@ -29,9 +29,9 @@ app.use(cookieParser());
 
 
 //router
-app.use('/api/products' , authMiddleware ,ProductRoutes);
-app.use("/api/users",authMiddleware ,  userRoutes);
-
+app.use('/api/products'  ,ProductRoutes);
+app.use("/api/users" ,  userRoutes);
+app.use("/paymentProcess", paymentRoutes)
 
 app.post("/login", async (req, res) => {
     try {
@@ -50,8 +50,8 @@ app.post("/login", async (req, res) => {
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
 
-        console.log("accesstoken ", accessToken)
-        console.log("refreshtoken ", refreshToken)
+        // console.log("accesstoken ", accessToken)
+        // console.log("refreshtoken ", refreshToken)
 
         res.clearCookie("refreshToken");   // ✅ clear old one first
         res.cookie("refreshToken", refreshToken, {
@@ -72,7 +72,9 @@ app.post("/login", async (req, res) => {
             accessToken,
             // refreshToken,
             userId : user._id, 
-            email : user.email
+            email : user.email,
+            role : user.role,
+            username : user.username
         });
 
     } catch (error) {

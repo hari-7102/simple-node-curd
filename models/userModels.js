@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6, // good practice to enforce min length
     },
+    role: { type: String},
   },
   { timestamps: true } // adds createdAt & updatedAt automatically
 );

@@ -6,7 +6,7 @@ const Product = require('../models/productsModels');
 
 const createProducts = async(req, res) => {
     try {
-        const products = await Product.create({...req.body, user: req.user._id, });
+        const products = await Product.create({...req.body });
         res.status(200).json(products);
     }catch (error) {
         res.status(500).json({message: error.message});
@@ -18,11 +18,13 @@ const getAllProducts = async (req, res) => {
     try {
         
         console.log("Current logged in user:", req.user); 
-        const ProductData = await Product.find({ user: req.user._id });
+        const ProductData = await Product.find();
         // console.log("products data" , ProductData)
         res.status(200).json(ProductData);
     }catch (error) {
+
         res.status(500).json({message: error.message});
+        
     }
 }
 

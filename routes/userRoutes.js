@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { createUser, getUsers, getUserById, updateUser, deleteUser , resetpassword } = require("../contoller/userContoller");
+const { createUser, getUsers, getUserById, updateUser, deleteUser  } = require("../contoller/userContoller");
 
 // CRUD routes
 router.post("/", createUser);      // Create

@@ -37,4 +37,23 @@ const authMiddleware = async (req, res, next) => {
 
 
 
-module.exports = authMiddleware;
+// middleware/roleMiddleware.js
+
+const adminOnly = (req, res, next) => {
+  try {
+    if (req.user && req.user.role === 'ADMIN') {
+      next(); // allow access
+    } else {
+      return res.status(403).json({ message: "Access denied: Admins only" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
+
+module.exports = { 
+  authMiddleware , adminOnly};
